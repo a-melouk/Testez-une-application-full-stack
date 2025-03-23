@@ -6,7 +6,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { SessionService } from 'src/app/services/session.service';
-
 import { MeComponent } from './me.component';
 
 describe('MeComponent', () => {
@@ -16,9 +15,9 @@ describe('MeComponent', () => {
   const mockSessionService = {
     sessionInformation: {
       admin: true,
-      id: 1
-    }
-  }
+      id: 1,
+    },
+  };
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [MeComponent],
@@ -28,11 +27,10 @@ describe('MeComponent', () => {
         MatCardModule,
         MatFormFieldModule,
         MatIconModule,
-        MatInputModule
+        MatInputModule,
       ],
       providers: [{ provide: SessionService, useValue: mockSessionService }],
-    })
-      .compileComponents();
+    }).compileComponents();
 
     fixture = TestBed.createComponent(MeComponent);
     component = fixture.componentInstance;
