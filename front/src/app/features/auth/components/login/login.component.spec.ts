@@ -141,5 +141,158 @@ describe('LoginComponent', () => {
       // Verify navigation was not called
       expect(routerMock.navigate).not.toHaveBeenCalled();
     });
+
+    it('should handle authentication failure with wrong credentials', () => {
+      // Create a specific error response similar to what the API would return
+      const authError = {
+        status: 401,
+        error: { message: 'Invalid credentials' }
+      };
+
+      // Setup the mock to return an auth failure error
+      authServiceMock.login.mockReturnValue(
+        throwError(() => authError)
+      );
+
+      // Call the method under test
+      component.submit();
+
+      // Verify onError was set to true
+      expect(component.onError).toBe(true);
+
+      // Verify auth service was called
+      expect(authServiceMock.login).toHaveBeenCalled();
+
+      // Verify session service was not updated
+      expect(sessionServiceMock.logIn).not.toHaveBeenCalled();
+
+      // Verify no navigation occurred
+      expect(routerMock.navigate).not.toHaveBeenCalled();
+    });
+
+    it('should not submit when a mandatory field is missing', () => {
+      // Create an incomplete form with missing password
+      const incompleteData = {
+        email: 'test@example.com',
+        password: '' // Missing password
+      };
+
+      // Set the form with incomplete data
+      component.form.setValue(incompleteData);
+
+      // Manually mark form as touched to trigger validations
+      component.form.get('password')?.markAsTouched();
+
+      // Form should be invalid
+      expect(component.form.valid).toBe(false);
+
+      // Get the submit button - it should be disabled
+      let submitButton = fixture.nativeElement.querySelector('button[type="submit"]');
+      expect(submitButton.disabled).toBeTruthy();
+
+      // Run the same test with missing email
+      component.form.setValue({
+        email: '', // Missing email
+        password: 'password123'
+      });
+
+      component.form.get('email')?.markAsTouched();
+      fixture.detectChanges();
+
+      // Form should still be invalid
+      expect(component.form.valid).toBe(false);
+
+      // Submit button should still be disabled
+      submitButton = fixture.nativeElement.querySelector('button[type="submit"]');
+      expect(submitButton.disabled).toBeTruthy();
+    });
+
+    it('should validate email format correctly', () => {
+      // Set invalid email format
+      component.form.setValue({
+        email: 'invalid-email',
+        password: 'password123'
+      });
+
+      // Mark field as touched to trigger validation
+      component.form.get('email')?.markAsTouched();
+
+      // Detect changes to update the UI
+      fixture.detectChanges();
+
+      // Check if the email field has errors
+      const emailErrors = component.form.get('email')?.errors;
+      expect(emailErrors).toBeTruthy();
+      expect(emailErrors?.['email']).toBeTruthy();
+
+      // Verify form is invalid
+      expect(component.form.valid).toBe(false);
+
+      // Submit method should not call auth service with invalid form
+      component.submit();
+      expect(authServiceMock.login).not.toHaveBeenCalled();
+
+      // Now test with valid email
+      component.form.setValue({
+        email: 'valid@example.com',
+        password: 'password123'
+      });
+
+      // Check that email field no longer has errors
+      expect(component.form.get('email')?.errors).toBeFalsy();
+    });
+
+    it('should disable the submit button when form is invalid', () => {
+      // Set invalid form data
+      component.form.setValue({
+        email: 'invalid-email',
+        password: 'pwd'
+      });
+
+      // Mark fields as touched to trigger validation
+      component.form.get('email')?.markAsTouched();
+      component.form.get('password')?.markAsTouched();
+
+      fixture.detectChanges();
+
+      // Get the submit button
+      const submitButton = fixture.nativeElement.querySelector('button[type="submit"]');
+
+      // Check if button is disabled
+      expect(submitButton.disabled).toBeTruthy();
+
+      // Fix the form data
+      component.form.setValue({
+        email: 'valid@example.com',
+        password: 'password123'
+      });
+
+      fixture.detectChanges();
+
+      // Button should now be enabled
+      expect(submitButton.disabled).toBeFalsy();
+    });
+
+    it('should show error message when login fails', () => {
+      // Initially error message should not be displayed
+      let errorMessage = fixture.nativeElement.querySelector('.error');
+      expect(errorMessage).toBeFalsy();
+
+      // Setup the mock to return an error
+      authServiceMock.login.mockReturnValue(
+        throwError(() => new Error('Login failed'))
+      );
+
+      // Call the method under test
+      component.submit();
+
+      // Update the view
+      fixture.detectChanges();
+
+      // Error message should now be displayed
+      errorMessage = fixture.nativeElement.querySelector('.error');
+      expect(errorMessage).toBeTruthy();
+      expect(errorMessage.textContent).toContain('An error occurred');
+    });
   });
 });
