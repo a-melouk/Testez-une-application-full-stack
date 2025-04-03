@@ -8,11 +8,12 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { UserService } from '../../services/user.service';
-import { User } from '../../interfaces/user.interface';
-import { SessionInformation } from '../../interfaces/sessionInformation.interface';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+// Import our new fixtures and helpers
+import { mockSessionInfo, mockUser } from '../../testing/test-fixtures';
+import { createMockRouter, createMockSnackBar, createMockSessionService, createMockUserService } from '../../testing/test-helpers';
 
 // Mock the Element.animate function for JSDOM
 if (typeof Element.prototype.animate !== 'function') {
@@ -35,45 +36,18 @@ describe('MeComponent', () => {
   describe('Unit Tests', () => {
     let component: MeComponent;
     let fixture: ComponentFixture<MeComponent>;
-    let userServiceMock: { getById: jest.Mock, delete: jest.Mock };
-    let sessionServiceMock: { sessionInformation: SessionInformation, logOut: jest.Mock };
-    let matSnackBarMock: { open: jest.Mock };
-    let routerMock: { navigate: jest.Mock };
+    let userServiceMock: ReturnType<typeof createMockUserService>;
+    let sessionServiceMock: ReturnType<typeof createMockSessionService>;
+    let matSnackBarMock: ReturnType<typeof createMockSnackBar>;
+    let routerMock: ReturnType<typeof createMockRouter>;
     let windowSpy: jest.SpyInstance;
 
-    // Mock data for testing
-    const mockUser: User = {
-      id: 1,
-      email: 'test@example.com',
-      firstName: 'Test',
-      lastName: 'User',
-      password: '',
-      admin: false,
-      createdAt: new Date()
-    };
-
-    const mockSessionInfo: SessionInformation = {
-      id: 1,
-      token: 'fake-jwt-token',
-      type: 'Bearer',
-      username: 'test@example.com',
-      firstName: 'Test',
-      lastName: 'User',
-      admin: false
-    };
-
     beforeEach(async () => {
-      // Create mock objects for all dependencies
-      userServiceMock = {
-        getById: jest.fn().mockReturnValue(of(mockUser)),
-        delete: jest.fn()
-      };
-      sessionServiceMock = {
-        sessionInformation: mockSessionInfo,
-        logOut: jest.fn()
-      };
-      matSnackBarMock = { open: jest.fn() };
-      routerMock = { navigate: jest.fn() };
+      // Create mock objects using our helper functions
+      userServiceMock = createMockUserService();
+      sessionServiceMock = createMockSessionService();
+      matSnackBarMock = createMockSnackBar();
+      routerMock = createMockRouter();
 
       // Spy on window.history.back
       windowSpy = jest.spyOn(window.history, 'back').mockImplementation(() => { });
@@ -216,26 +190,6 @@ describe('MeComponent', () => {
     let snackBar: MatSnackBar;
 
     // Mock data for testing
-    const mockUser: User = {
-      id: 1,
-      email: 'test@example.com',
-      firstName: 'Test',
-      lastName: 'User',
-      password: '',
-      admin: false,
-      createdAt: new Date()
-    };
-
-    const mockSessionInfo: SessionInformation = {
-      id: 1,
-      token: 'fake-jwt-token',
-      type: 'Bearer',
-      username: 'test@example.com',
-      firstName: 'Test',
-      lastName: 'User',
-      admin: false
-    };
-
     beforeEach(async () => {
       // Create router mock
       const routerMock = { navigate: jest.fn() };

@@ -18,6 +18,7 @@ import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of } from 'rxjs';
+import { testRequiredFormField } from '../../../../testing/test-helpers';
 
 import { FormComponent } from './form.component';
 
@@ -225,35 +226,13 @@ describe('FormComponent', () => {
     });
 
     it('should validate name field is required', () => {
-      // Get name control
-      const nameControl = component.sessionForm?.get('name');
-
-      // Initially empty and invalid
-      expect(nameControl?.valid).toBeFalsy();
-      expect(nameControl?.errors?.['required']).toBeTruthy();
-
-      // Set value
-      nameControl?.setValue('Test Session');
-
-      // Should be valid
-      expect(nameControl?.valid).toBeTruthy();
-      expect(nameControl?.errors).toBeNull();
+      // Using our helper function for testing required fields
+      testRequiredFormField(component.sessionForm!, 'name', 'Test Session');
     });
 
     it('should validate description field is required', () => {
-      // Get description control
-      const descControl = component.sessionForm?.get('description');
-
-      // Initially empty and invalid
-      expect(descControl?.valid).toBeFalsy();
-      expect(descControl?.errors?.['required']).toBeTruthy();
-
-      // Set value
-      descControl?.setValue('Test description');
-
-      // Should be valid
-      expect(descControl?.valid).toBeTruthy();
-      expect(descControl?.errors).toBeNull();
+      // Using our helper function for testing required fields
+      testRequiredFormField(component.sessionForm!, 'description', 'Test description');
     });
   });
 
