@@ -72,8 +72,11 @@ describe('User Profile', () => {
     cy.get('span.link').contains('Account').click();
     cy.wait('@getUser');
 
-    // Click on delete button using a more specific selector
-    cy.get('button[mat-raised-button][color="warn"]').contains('Delete my account').click();
+    // Look for the section that says "Delete my account:" and then find the button below it
+    cy.contains('p', 'Delete my account:').should('exist');
+
+    // Click on the delete button which has the text "Detail" (according to the HTML)
+    cy.get('button[mat-raised-button][color="warn"]').contains('Detail').click();
     cy.wait('@deleteUser');
 
     // Verify redirect to home page
