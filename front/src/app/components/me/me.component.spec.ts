@@ -14,6 +14,7 @@ import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 // Import our new fixtures and helpers
 import { mockSessionInfo, mockUser } from '../../testing/test-fixtures';
 import { createMockRouter, createMockSnackBar, createMockSessionService, createMockUserService } from '../../testing/test-helpers';
+import { Observable } from 'rxjs';
 
 // Mock the Element.animate function for JSDOM
 if (typeof Element.prototype.animate !== 'function') {
@@ -23,7 +24,7 @@ if (typeof Element.prototype.animate !== 'function') {
     pause: jest.fn(),
     cancel: jest.fn(),
     finished: Promise.resolve()
-  });
+  } as any);
 }
 
 describe('MeComponent', () => {
@@ -147,21 +148,21 @@ describe('MeComponent', () => {
         const calls: string[] = [];
 
         // Override mock implementations to track sequence
-        userServiceMock.delete.mockImplementation(() => {
+        userServiceMock.delete.mockImplementation((): Observable<any> => {
           calls.push('delete');
           return of({});
         });
 
-        matSnackBarMock.open.mockImplementation(() => {
+        matSnackBarMock.open.mockImplementation((): any => {
           calls.push('snackbar');
           return {};
         });
 
-        sessionServiceMock.logOut.mockImplementation(() => {
+        sessionServiceMock.logOut.mockImplementation((): void => {
           calls.push('logout');
         });
 
-        routerMock.navigate.mockImplementation(() => {
+        routerMock.navigate.mockImplementation((): Promise<boolean> => {
           calls.push('navigate');
           return Promise.resolve(true);
         });

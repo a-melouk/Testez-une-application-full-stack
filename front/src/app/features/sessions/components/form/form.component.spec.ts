@@ -19,6 +19,9 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of } from 'rxjs';
 import { testRequiredFormField } from '../../../../testing/test-helpers';
+import { Observable } from 'rxjs';
+import { MatSnackBarRef, MatSnackBarConfig } from '@angular/material/snack-bar';
+import { NavigationExtras } from '@angular/router';
 
 import { FormComponent } from './form.component';
 
@@ -61,7 +64,7 @@ describe('FormComponent', () => {
   };
 
   // Setup for create mode
-  function setupCreateMode() {
+  function setupCreateMode(): void {
     routerMock.url = '/sessions/create';
     activatedRouteMock.snapshot.paramMap.get.mockReturnValue(null);
     fixture = TestBed.createComponent(FormComponent);
@@ -70,7 +73,7 @@ describe('FormComponent', () => {
   }
 
   // Setup for update mode
-  function setupUpdateMode() {
+  function setupUpdateMode(): void {
     routerMock.url = '/sessions/update/1';
     activatedRouteMock.snapshot.paramMap.get.mockReturnValue('1');
     sessionApiServiceMock.detail.mockReturnValue(of(mockSession));
@@ -82,30 +85,30 @@ describe('FormComponent', () => {
   beforeEach(async () => {
     // Create mock objects for all dependencies
     sessionApiServiceMock = {
-      detail: jest.fn().mockReturnValue(of(mockSession)),
-      create: jest.fn().mockReturnValue(of(mockSession)),
-      update: jest.fn().mockReturnValue(of(mockSession))
+      detail: jest.fn<Observable<Session>, [string]>().mockReturnValue(of(mockSession)),
+      create: jest.fn<Observable<Session>, [Session]>().mockReturnValue(of(mockSession)),
+      update: jest.fn<Observable<Session>, [string, Session]>().mockReturnValue(of(mockSession))
     };
 
     teacherServiceMock = {
-      all: jest.fn().mockReturnValue(of(mockTeachers))
+      all: jest.fn<Observable<Teacher[]>, []>().mockReturnValue(of(mockTeachers))
     };
 
     sessionServiceMock = {
       sessionInformation: mockSessionInfo
     };
 
-    matSnackBarMock = { open: jest.fn() };
+    matSnackBarMock = { open: jest.fn<MatSnackBarRef<any>, [string, string?, MatSnackBarConfig?]>() };
 
     routerMock = {
-      navigate: jest.fn(),
+      navigate: jest.fn<Promise<boolean>, [any[], NavigationExtras?]>(),
       url: '/sessions/create' // Default to create mode
     };
 
     activatedRouteMock = {
       snapshot: {
         paramMap: {
-          get: jest.fn().mockReturnValue(null) // Default to no ID (create mode)
+          get: jest.fn<string | null, [string]>().mockReturnValue(null) // Default to no ID (create mode)
         }
       }
     };

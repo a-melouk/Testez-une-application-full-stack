@@ -108,11 +108,11 @@ describe('AppComponent', () => {
       const calls: string[] = [];
 
       // Override mock implementations to track sequence
-      sessionServiceMock.logOut.mockImplementation(() => {
+      sessionServiceMock.logOut.mockImplementation((): void => {
         calls.push('logout');
       });
 
-      routerMock.navigate.mockImplementation(() => {
+      routerMock.navigate.mockImplementation((): Promise<boolean> => {
         calls.push('navigate');
         return Promise.resolve(true);
       });

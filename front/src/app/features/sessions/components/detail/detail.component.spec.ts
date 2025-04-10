@@ -79,7 +79,7 @@ describe('DetailComponent', () => {
     routerMock = { navigate: jest.fn() };
 
     // Spy on window.history.back
-    windowSpy = jest.spyOn(window.history, 'back').mockImplementation(() => { });
+    windowSpy = jest.spyOn(window.history, 'back').mockImplementation((): void => { });
 
     // Create mock for ActivatedRoute
     const activatedRouteMock = {
