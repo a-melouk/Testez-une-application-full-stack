@@ -123,15 +123,19 @@ describe('Sessions Management', () => {
       // Verify we're on the detail page
       cy.url().should('include', `/sessions/detail/${firstSessionId}`);
 
-      // Click participate button - using the exact HTML structure
-      // cy.get('button.mat-raised-button.mat-primary').contains('Participate').click();
+      // Click on the button with color="primary" that contains the span with "Participate" text
+      cy.get('button[color="primary"]').then($buttons => {
+        console.log($buttons);
+        const participateButton = $buttons.filter((_, el) => {
+          // Find a button that has a span.ml1 child with text "Participate"
+          return Cypress.$(el).find('span.ml1:contains("Participate")').length > 0;
+        });
+        cy.wrap(participateButton).click({ force: true });
+      });
 
-      // // Verify participation request
-      // cy.wait('@participateRequest');
+      // Verify participation request
+      cy.wait('@participateRequest');
 
-      // // After participation, the button should change to a warning color button
-      // cy.get('button.mat-raised-button.mat-warn').should('exist');
-      // cy.get('mat-icon').contains('person_remove').should('exist');
     });
 
     it('should allow a user to cancel participation in a session', () => {
@@ -172,15 +176,26 @@ describe('Sessions Management', () => {
       // Verify we're on the detail page
       cy.url().should('include', `/sessions/detail/${firstSessionId}`);
 
-      // Click the "Do not participate" button using the correct classes
-      // cy.get('button.mat-raised-button.mat-warn').contains('Do not participate').click();
+      // Click on the button with color="warn" that contains the span with "Do not participate" text
+      // cy.get('button[color="warn"]').then($buttons => {
+      //   const unparticipateButton = $buttons.filter((_, el) => {
+      //     // Find a button that has a span.ml1 child with text "Do not participate"
+      //     return Cypress.$(el).find('span.ml1:contains("Do not participate")').length > 0;
+      //   });
+      //   cy.wrap(unparticipateButton).click({ force: true });
+      // });
 
-      // // Verify unparticipate request
+      // Verify unparticipate request
       // cy.wait('@unparticipateRequest');
 
-      // // After cancellation, the button should change back
-      // cy.get('button.mat-raised-button.mat-primary').should('exist');
-      // cy.get('mat-icon').contains('person_add').should('exist');
+      // After cancellation, check for the button with color="primary" that contains "Participate"
+      // cy.get('button[color="primary"]').then($buttons => {
+      //   const participateButton = $buttons.filter((_, el) => {
+      //     // Find a button that has a span.ml1 child with text "Participate"
+      //     return Cypress.$(el).find('span.ml1:contains("Participate")').length > 0;
+      //   });
+      //   expect(participateButton.length).to.be.gt(0); // Verify the button exists
+      // });
     });
   });
 
