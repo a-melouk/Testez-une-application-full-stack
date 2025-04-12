@@ -30,12 +30,9 @@ describe('User Profile', () => {
       body: mockLoginData
     }).as('login');
 
-    // Login as regular user with correct credentials
-    cy.visit('/login');
-    cy.get('input[formControlName="email"]').type('yoga@studio.com');
-    cy.get('input[formControlName="password"]').type('test!1234');
-    cy.get('button[type="submit"]').click();
-    cy.wait('@login');
+    // Login using custom command
+    cy.login('yoga@studio.com', 'test!1234');
+    cy.wait('@login'); // Wait for the intercepted login request
   });
 
   it('should display user profile information', () => {
@@ -50,9 +47,9 @@ describe('User Profile', () => {
     cy.wait('@getUser');
 
     // Verify profile information is displayed
-    cy.get('mat-card-content').should('exist');
-    cy.get('mat-card-content').should('contain', 'Test USER');
-    cy.get('mat-card-content').should('contain', 'yoga@studio.com');
+    cy.get('mat-card-content').should('exist')
+      .and('contain', 'Test USER')
+      .and('contain', 'yoga@studio.com');
   });
 
   it('should allow a user to delete their account', () => {

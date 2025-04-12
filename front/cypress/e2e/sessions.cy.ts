@@ -48,14 +48,11 @@ describe('Sessions Management', () => {
       // Intercept session list request
       cy.interceptAPI('GET', 'api/session', 'sessions');
 
-      // Login
-      cy.visit('/login');
-      cy.get('input[formControlName="email"]').type(regularUserEmail);
-      cy.get('input[formControlName="password"]').type(password);
-      cy.get('button[type="submit"]').should('not.be.disabled').click();
+      // Login using custom command
+      cy.login(regularUserEmail, password);
 
-      // Wait for login to complete
-      cy.wait('@loginRequest');
+      // Wait for login API and session data
+      cy.wait('@loginRequest'); // Still wait for the specific login intercept if needed for assertions
       cy.wait('@sessions');
 
       // Verify redirect to sessions page
@@ -238,11 +235,8 @@ describe('Sessions Management', () => {
       cy.interceptAPI('GET', 'api/session', 'sessions');
       cy.interceptAPI('GET', 'api/teacher', 'teachers');
 
-      // Login as admin
-      cy.visit('/login');
-      cy.get('input[formControlName="email"]').type(adminUserEmail);
-      cy.get('input[formControlName="password"]').type(password);
-      cy.get('button[type="submit"]').should('not.be.disabled').click();
+      // Login as admin using custom command
+      cy.login(adminUserEmail, password);
 
       // Wait for login and data to load
       cy.wait('@adminLogin');
@@ -364,11 +358,11 @@ describe('Sessions Management', () => {
     });
 
     it('should allow logout from sessions page', () => {
-      // Click logout button in the nav
-      cy.get('span.link').contains('Logout').click();
+      // Perform logout using the custom command
+      cy.logout();
 
-      // Verify redirect to home page
-      cy.url().should('eq', Cypress.config().baseUrl + '/');
+      // Verify redirection to the home page after logout
+      cy.url().should('eq', 'http://localhost:4200/');
     });
   });
 });

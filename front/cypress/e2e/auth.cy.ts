@@ -15,23 +15,10 @@ describe('Authentication flows', () => {
         body: {}
       }).as('register');
 
-      // Visit register page
-      cy.visit('/register');
+      // Use custom command to register
+      cy.register('John', 'Doe', 'john.doe@example.com', 'password123');
 
-      // Verify form exists and title is correct
-      cy.get('form').should('exist');
-      cy.get('mat-card-title').should('contain', 'Register');
-
-      // Fill out form
-      cy.get('input[formControlName="firstName"]').type('John');
-      cy.get('input[formControlName="lastName"]').type('Doe');
-      cy.get('input[formControlName="email"]').type('john.doe@example.com');
-      cy.get('input[formControlName="password"]').type('password123');
-
-      // Submit form
-      cy.get('button[type="submit"]').click();
-
-      // Wait for API call
+      // Wait for API call (cy.register already handled the UI interaction and navigation)
       cy.wait('@register').then((interception) => {
         expect(interception.request.body).to.deep.equal({
           firstName: 'John',
@@ -40,9 +27,6 @@ describe('Authentication flows', () => {
           password: 'password123'
         });
       });
-
-      // Verify redirect to login page
-      cy.url().should('include', '/login');
     });
 
     it('should show validation errors for invalid inputs', () => {
@@ -97,10 +81,7 @@ describe('Authentication flows', () => {
 
       // Wait for API call
       cy.wait('@registerError');
-
-      // Check if error is displayed
-      cy.get('.error').should('exist');
-      cy.get('.error').should('be.visible');
+      cy.get('.error').should('exist').and('be.visible');
     });
   });
 
@@ -120,22 +101,15 @@ describe('Authentication flows', () => {
         }
       }).as('login');
 
-      // Visit login page and use correct credentials
-      cy.visit('/login');
-      cy.get('input[formControlName="email"]').type('yoga@studio.com');
-      cy.get('input[formControlName="password"]').type('test!1234');
-      cy.get('button[type="submit"]').should('not.be.disabled').click();
+      // Use custom command to login
+      cy.login('yoga@studio.com', 'test!1234');
 
-      // Wait for API call
       cy.wait('@login').then((interception) => {
         expect(interception.request.body).to.deep.equal({
           email: 'yoga@studio.com',
           password: 'test!1234'
         });
       });
-
-      // Verify redirect to sessions page
-      cy.url().should('include', '/sessions');
     });
 
     it('should show validation errors for invalid inputs', () => {
@@ -181,19 +155,14 @@ describe('Authentication flows', () => {
       cy.get('input[formControlName="email"]').type('wrong@example.com');
       cy.get('input[formControlName="password"]').type('wrongpassword');
 
-      // Assert button becomes enabled after typing valid formats
-      cy.get('button[type="submit"]').should('not.be.disabled');
-
       // Submit form
-      cy.get('button[type="submit"]').click();
+      cy.get('button[type="submit"]').should('not.be.disabled').click();
 
       // Wait for API call
       cy.wait('@loginError');
 
-      // Check if error message is displayed correctly
-      cy.get('p.error').should('exist');
-      cy.get('p.error').should('be.visible');
-      cy.get('p.error').should('contain', 'An error occurred');
+      // Verify error message is displayed
+      cy.get('p.error').should('exist').and('be.visible').and('contain', 'An error occurred');
     });
   });
 
@@ -213,10 +182,8 @@ describe('Authentication flows', () => {
         }
       }).as('login');
 
-      cy.visit('/login');
-      cy.get('input[formControlName="email"]').type('yoga@studio.com');
-      cy.get('input[formControlName="password"]').type('test!1234');
-      cy.get('button[type="submit"]').should('not.be.disabled').click();
+      // Login using the custom command
+      cy.login('yoga@studio.com', 'test!1234');
       cy.wait('@login');
 
       // Now logout using the custom command

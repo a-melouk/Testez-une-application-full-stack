@@ -40,8 +40,6 @@ Cypress.Commands.add('login', (email: string, password: string) => {
   cy.get('input[formControlName="email"]').type(email);
   cy.get('input[formControlName="password"]').type(password);
   cy.get('button[type="submit"]').should('not.be.disabled').click();
-
-  // Wait for the login process to complete
   cy.url().should('include', '/sessions');
 });
 
@@ -53,8 +51,6 @@ Cypress.Commands.add('register', (firstName: string, lastName: string, email: st
   cy.get('input[formControlName="email"]').type(email);
   cy.get('input[formControlName="password"]').type(password);
   cy.get('button[type="submit"]').should('not.be.disabled').click();
-
-  // Wait for the registration process to complete
   cy.url().should('include', '/login');
 });
 
@@ -66,7 +62,6 @@ Cypress.Commands.add('logout', () => {
 
 // Intercept API calls and mock responses
 Cypress.Commands.add('interceptAPI', (methodInput: string, url: string, fixture: string) => {
-  // Define the expected Method type and cast the input
   type Method = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
   const method = methodInput as Method;
   cy.intercept(method, url, { fixture: `${fixture}.json` }).as(fixture);
