@@ -1,5 +1,3 @@
-/// <reference types="cypress" />
-
 /**
  * Test suite for session-related features.
  * Covers viewing, creating, updating, deleting, and participation for different user roles.
@@ -87,9 +85,9 @@ describe('Sessions Management', () => {
 
     it('should allow a user to participate in a session', () => {
       // Intercept API calls for regular session detail view
-      cy.interceptAPI('GET', 'api/session', 'sessions');
+      // Note: Sessions list is intercepted in beforeEach
 
-      // Set up intercepts before visit
+      // Initial session detail load (user not participating)
       cy.intercept('GET', `api/session/${firstSessionId}`, {
         statusCode: 200,
         body: {
@@ -98,51 +96,64 @@ describe('Sessions Management', () => {
           description: 'A relaxing yoga session',
           date: '2023-01-01T10:00:00.000Z',
           teacher_id: 2,
-          users: [], // User is NOT participating yet
+          users: [], // User (ID 1 from login) is NOT participating yet
           createdAt: '2022-12-01T00:00:00.000Z',
           updatedAt: '2022-12-05T00:00:00.000Z'
         }
-      }).as('sessionDetailNotParticipating');
+      }).as('getSessionDetailInitial');
 
       cy.intercept('GET', `api/teacher/${teacherId}`, {
         statusCode: 200,
-        fixture: 'teachers'
-      }).as('teacherData');
+        fixture: 'teachers' // Because teachers.json exists and has teacher ID 2
+      }).as('getTeacherDetail');
 
-      // Intercept participate request - should use the user ID from login (1)
+      // Intercept participate request - user ID 1 comes from login fixture
       cy.intercept('POST', `api/session/${firstSessionId}/participate/1`, {
         statusCode: 200,
         body: {}
       }).as('participateRequest');
 
-      // Navigate to detail page
+      // Navigate to detail page by clicking the button on the list page
       cy.get('.mat-card.item .mat-card-actions button').first().click();
-      cy.wait('@sessionDetailNotParticipating');
-      cy.wait('@teacherData');
+      cy.wait('@getSessionDetailInitial');
+      cy.wait('@getTeacherDetail');
 
-      // Verify we're on the detail page
+      // Verify we're on the detail page and initial state
       cy.url().should('include', `/sessions/detail/${firstSessionId}`);
+      cy.contains('button', 'Participate').should('be.visible');
+      cy.contains('button', 'Do not participate').should('not.exist');
 
-      // Click on the button with color="primary" that contains the span with "Participate" text
-      cy.get('button[color="primary"]').then($buttons => {
-        console.log($buttons);
-        const participateButton = $buttons.filter((_, el) => {
-          // Find a button that has a span.ml1 child with text "Participate"
-          return Cypress.$(el).find('span.ml1:contains("Participate")').length > 0;
-        });
-        cy.wrap(participateButton).click({ force: true });
-      });
+      // Intercept the GET request that happens *after* participation
+      cy.intercept('GET', `api/session/${firstSessionId}`, {
+        statusCode: 200,
+        body: {
+          id: 1,
+          name: 'Yoga Session',
+          description: 'A relaxing yoga session',
+          date: '2023-01-01T10:00:00.000Z',
+          teacher_id: 2,
+          users: [1], // User ID 1 is now participating
+          createdAt: '2022-12-01T00:00:00.000Z',
+          updatedAt: '2022-12-05T00:00:00.000Z'
+        }
+      }).as('getSessionDetailAfterParticipate');
 
-      // Verify participation request
+      // Click the Participate button
+      cy.contains('button', 'Participate').click();
+
+      // Wait for the requests
       cy.wait('@participateRequest');
+      cy.wait('@getSessionDetailAfterParticipate');
 
+      // Verify the button state changed
+      cy.contains('button', 'Do not participate').should('be.visible');
+      cy.contains('button', 'Participate').should('not.exist');
     });
 
     it('should allow a user to cancel participation in a session', () => {
-      // Intercept API calls for sessions list
-      cy.interceptAPI('GET', 'api/session', 'sessions');
+      // Intercept API calls for sessions list (handled in beforeEach)
 
-      // Setup custom intercept for a session where user IS participating
+      // Setup intercept for session detail where user IS participating
       cy.intercept('GET', `api/session/${firstSessionId}`, {
         statusCode: 200,
         body: {
@@ -155,14 +166,14 @@ describe('Sessions Management', () => {
           createdAt: '2022-12-01T00:00:00.000Z',
           updatedAt: '2022-12-05T00:00:00.000Z'
         }
-      }).as('sessionDetailParticipating');
+      }).as('getSessionDetailParticipating');
 
       cy.intercept('GET', `api/teacher/${teacherId}`, {
         statusCode: 200,
-        fixture: 'teachers'
-      }).as('teacherData');
+        fixture: 'teachers' // Because teachers.json exists and has teacher ID 2
+      }).as('getTeacherDetail');
 
-      // Intercept unparticipate request
+      // Intercept unparticipate request - user ID 1 from login
       cy.intercept('DELETE', `api/session/${firstSessionId}/participate/1`, {
         statusCode: 200,
         body: {}
@@ -170,32 +181,39 @@ describe('Sessions Management', () => {
 
       // Navigate to detail page
       cy.get('.mat-card.item .mat-card-actions button').first().click();
-      cy.wait('@sessionDetailParticipating');
-      cy.wait('@teacherData');
+      cy.wait('@getSessionDetailParticipating');
+      cy.wait('@getTeacherDetail');
 
-      // Verify we're on the detail page
+      // Verify we're on the detail page and initial state
       cy.url().should('include', `/sessions/detail/${firstSessionId}`);
+      cy.contains('button', 'Do not participate').should('be.visible');
+      cy.contains('button', 'Participate').should('not.exist');
 
-      // Click on the button with color="warn" that contains the span with "Do not participate" text
-      // cy.get('button[color="warn"]').then($buttons => {
-      //   const unparticipateButton = $buttons.filter((_, el) => {
-      //     // Find a button that has a span.ml1 child with text "Do not participate"
-      //     return Cypress.$(el).find('span.ml1:contains("Do not participate")').length > 0;
-      //   });
-      //   cy.wrap(unparticipateButton).click({ force: true });
-      // });
+      // Intercept the GET request that happens *after* un-participation
+      cy.intercept('GET', `api/session/${firstSessionId}`, {
+        statusCode: 200,
+        body: {
+          id: 1,
+          name: 'Yoga Session',
+          description: 'A relaxing yoga session',
+          date: '2023-01-01T10:00:00.000Z',
+          teacher_id: 2,
+          users: [], // User ID 1 is now NOT participating
+          createdAt: '2022-12-01T00:00:00.000Z',
+          updatedAt: '2022-12-05T00:00:00.000Z'
+        }
+      }).as('getSessionDetailAfterUnparticipate');
 
-      // Verify unparticipate request
-      // cy.wait('@unparticipateRequest');
+      // Click the Do not participate button
+      cy.contains('button', 'Do not participate').click();
 
-      // After cancellation, check for the button with color="primary" that contains "Participate"
-      // cy.get('button[color="primary"]').then($buttons => {
-      //   const participateButton = $buttons.filter((_, el) => {
-      //     // Find a button that has a span.ml1 child with text "Participate"
-      //     return Cypress.$(el).find('span.ml1:contains("Participate")').length > 0;
-      //   });
-      //   expect(participateButton.length).to.be.gt(0); // Verify the button exists
-      // });
+      // Wait for the requests
+      cy.wait('@unparticipateRequest');
+      cy.wait('@getSessionDetailAfterUnparticipate');
+
+      // Verify the button state changed
+      cy.contains('button', 'Participate').should('be.visible');
+      cy.contains('button', 'Do not participate').should('not.exist');
     });
   });
 
@@ -281,65 +299,6 @@ describe('Sessions Management', () => {
       cy.url().should('include', '/sessions');
     });
 
-    // it('should allow admin to update an existing session', () => {
-    //   // Find the edit button on the first session and click it
-    //   cy.get('.mat-card.item').first().within(() => {
-    //     cy.get('button').contains('Edit').click();
-    //   });
-
-    //   // Intercept session detail and update requests after clicking edit
-    //   cy.interceptAPI('GET', `api/session/${firstSessionId}`, 'session-detail');
-    //   cy.intercept('PUT', `api/session/${firstSessionId}`, {
-    //     statusCode: 200,
-    //     body: {
-    //       id: 1,
-    //       name: 'Updated Yoga Session',
-    //       description: 'Updated session description',
-    //       date: '2023-02-15T10:00:00.000Z',
-    //       teacher_id: 2,
-    //       users: [3, 4, 5],
-    //       createdAt: '2022-12-01T00:00:00.000Z',
-    //       updatedAt: '2023-01-20T00:00:00.000Z'
-    //     }
-    //   }).as('updateSession');
-
-    //   // Verify navigation to update form
-    //   cy.url().should('include', `/sessions/update/${firstSessionId}`);
-
-    //   // Clear and update form fields
-    //   cy.get('input[formControlName="name"]').clear().type('Updated Yoga Session');
-    //   cy.get('input[formControlName="date"]').clear().type('2023-02-15');
-    //   cy.get('textarea[formControlName="description"]').clear().type('Updated session description');
-
-    //   // Submit the form
-    //   cy.get('button[type="submit"]').should('not.be.disabled').click();
-    //   cy.wait('@updateSession');
-
-    //   // Verify redirect to sessions list
-    //   cy.url().should('include', '/sessions');
-    // });
-
-    // it('should allow admin to delete a session', () => {
-    //   // Find the delete button on the first session and click it
-    //   cy.get('.mat-card.item').first().within(() => {
-    //     cy.get('button').contains('Delete').click();
-    //   });
-
-    //   // Intercept delete session request
-    //   cy.intercept('DELETE', `api/session/${firstSessionId}`, {
-    //     statusCode: 200,
-    //     body: {}
-    //   }).as('deleteSession');
-
-    //   // Confirm deletion in dialog if there is one (uses OK button)
-    //   cy.get('button').contains('OK').click({ force: true });
-
-    //   // Verify delete request
-    //   cy.wait('@deleteSession');
-
-    //   // Verify session is removed (the list should refresh automatically)
-    //   cy.get('.mat-card.item').should('have.length', 1); // Should be one less than the original 2
-    // });
   });
 
   // --- General Navigation Scenarios --- //
