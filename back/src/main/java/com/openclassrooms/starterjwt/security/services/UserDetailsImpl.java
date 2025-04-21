@@ -30,9 +30,9 @@ public class UserDetailsImpl implements UserDetails {
   private Boolean admin;
 
   @JsonIgnore
-  private String password;  
-  
-  public Collection<? extends GrantedAuthority> getAuthorities() {        
+  private String password;
+
+  public Collection<? extends GrantedAuthority> getAuthorities() {
       return new HashSet<GrantedAuthority>();
   }
 
@@ -64,5 +64,10 @@ public class UserDetailsImpl implements UserDetails {
       return false;
     UserDetailsImpl user = (UserDetailsImpl) o;
     return Objects.equals(id, user.id);
-  } 
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
+  }
 }
