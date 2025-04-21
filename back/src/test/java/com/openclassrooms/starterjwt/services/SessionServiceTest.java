@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -326,4 +327,140 @@ class SessionServiceTest {
         verify(userRepository).findById(userId);
         verify(sessionRepository, never()).save(any(Session.class));
     }
+
+    // --- Tests for noLongerParticipate ---
+
+    @Test
+    void testNoLongerParticipate_Success() {
+        // --- Arrange ---
+        Long sessionId = 1L;
+        Long userId = 10L;
+
+        // Setup mockSession with the user initially participating
+        mockSession.setUsers(new ArrayList<>(Arrays.asList(mockUser))); // Use modifiable list
+
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(mockSession));
+        // No need to mock userRepository.findById for noLongerParticipate
+
+        // Mock the save operation
+        when(sessionRepository.save(any(Session.class))).thenReturn(mockSession);
+
+        // --- Act ---
+        sessionService.noLongerParticipate(sessionId, userId);
+
+        // --- Assert ---
+        // Verify repository methods were called
+        verify(sessionRepository, times(1)).findById(sessionId);
+
+        // Capture the argument passed to save
+        ArgumentCaptor<Session> sessionCaptor = ArgumentCaptor.forClass(Session.class);
+        verify(sessionRepository, times(1)).save(sessionCaptor.capture());
+
+        // Check that the saved session no longer contains the user
+        Session savedSession = sessionCaptor.getValue();
+        assertThat(savedSession.getUsers()).isNotNull();
+        assertThat(savedSession.getUsers()).doesNotContain(mockUser);
+        assertThat(savedSession.getUsers()).isEmpty(); // Assuming only one user initially
+    }
+
+    @Test
+    void testNoLongerParticipate_SessionNotFound() {
+        // --- Arrange ---
+        Long sessionId = 99L; // Non-existent session ID
+        Long userId = 10L;
+
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.empty());
+
+        // --- Act & Assert ---
+        // Verify that calling noLongerParticipate throws NotFoundException
+        assertThatThrownBy(() -> sessionService.noLongerParticipate(sessionId, userId))
+                .isInstanceOf(NotFoundException.class);
+
+        // Verify findById was called for session
+        verify(sessionRepository).findById(sessionId);
+        // Verify save was not called
+        verify(sessionRepository, never()).save(any(Session.class));
+    }
+
+    @Test
+    void testNoLongerParticipate_UserNotParticipating() {
+        // --- Arrange ---
+        Long sessionId = 1L;
+        Long userId = 10L; // User ID exists but is not in the session
+
+        // Setup mockSession without the user
+        mockSession.setUsers(new ArrayList<>()); // Empty list
+
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(mockSession));
+
+        // --- Act & Assert ---
+        // Verify that calling noLongerParticipate throws BadRequestException
+        assertThatThrownBy(() -> sessionService.noLongerParticipate(sessionId, userId))
+                .isInstanceOf(BadRequestException.class);
+
+        // Verify findById was called for session
+        verify(sessionRepository).findById(sessionId);
+        // Verify save was not called
+        verify(sessionRepository, never()).save(any(Session.class));
+    }
+
+    @Test
+    void testNoLongerParticipate_UserNotParticipating_WithOtherUsers() {
+        // --- Arrange ---
+        Long sessionId = 1L;
+        Long userIdToRemove = 10L; // This user is NOT in the list
+
+        // Create another user who IS in the list
+        User existingUser = new User();
+        existingUser.setId(20L);
+        existingUser.setEmail("existing@test.com");
+
+        // Setup mockSession with only the existingUser
+        mockSession.setUsers(new ArrayList<>(Arrays.asList(existingUser)));
+
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(mockSession));
+
+        // --- Act & Assert ---
+        // Verify that calling noLongerParticipate for userIdToRemove throws BadRequestException
+        assertThatThrownBy(() -> sessionService.noLongerParticipate(sessionId, userIdToRemove))
+                .isInstanceOf(BadRequestException.class);
+
+        // Verify findById was called for session
+        verify(sessionRepository).findById(sessionId);
+        // Verify save was not called
+        verify(sessionRepository, never()).save(any(Session.class));
+    }
+
+     @Test
+     void testNoLongerParticipate_Success_WithMultipleUsers() {
+         // --- Arrange ---
+         Long sessionId = 1L;
+         Long userIdToRemove = 10L; // User to remove (mockUser)
+
+         // Create other users
+         User user2 = new User(); user2.setId(20L); user2.setEmail("user2@test.com");
+         User user3 = new User(); user3.setId(30L); user3.setEmail("user3@test.com");
+
+         // Setup mockSession with multiple users initially
+         mockSession.setUsers(new ArrayList<>(Arrays.asList(user2, mockUser, user3))); // Use modifiable list
+
+         when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(mockSession));
+         when(sessionRepository.save(any(Session.class))).thenReturn(mockSession);
+
+         // --- Act ---
+         sessionService.noLongerParticipate(sessionId, userIdToRemove);
+
+         // --- Assert ---
+         verify(sessionRepository, times(1)).findById(sessionId);
+         ArgumentCaptor<Session> sessionCaptor = ArgumentCaptor.forClass(Session.class);
+         verify(sessionRepository, times(1)).save(sessionCaptor.capture());
+
+         // Check the saved session contains only the remaining users
+         Session savedSession = sessionCaptor.getValue();
+         assertThat(savedSession.getUsers())
+                 .isNotNull()
+                 .hasSize(2)
+                 .containsExactlyInAnyOrder(user2, user3) // Check remaining users
+                 .doesNotContain(mockUser); // Verify removed user is gone
+     }
 }
