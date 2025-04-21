@@ -27,8 +27,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test") // Ensure using test profile (e.g., H2 database)
-@WithMockUser // Mock a user for security context
+@ActiveProfiles("test")
+@WithMockUser
 class TeacherControllerIntegrationTest {
 
     @Autowired
@@ -52,7 +52,7 @@ class TeacherControllerIntegrationTest {
         sessionRepository.deleteAll();
         teacherRepository.deleteAll();
 
-        // Setup initial data
+        // Arrange
         teacher1 = Teacher.builder()
                 .lastName("DELAHAYE")
                 .firstName("Margot")
@@ -80,12 +80,13 @@ class TeacherControllerIntegrationTest {
 
     @Test
     void testFindById_TeacherFound() throws Exception {
-        // Act & Assert
+        // Act
         MvcResult result = mockMvc.perform(get("/api/teacher/{id}", teacher1.getId())
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
 
+        // Assert
         String jsonResponse = result.getResponse().getContentAsString();
         TeacherDto responseDto = objectMapper.readValue(jsonResponse, TeacherDto.class);
 
@@ -115,12 +116,13 @@ class TeacherControllerIntegrationTest {
 
     @Test
     void testFindAll() throws Exception {
-        // Act & Assert
+        // Act
         MvcResult result = mockMvc.perform(get("/api/teacher")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andReturn();
 
+        // Assert
         String jsonResponse = result.getResponse().getContentAsString();
         List<TeacherDto> responseDtos = objectMapper.readValue(jsonResponse, new TypeReference<List<TeacherDto>>() {});
 

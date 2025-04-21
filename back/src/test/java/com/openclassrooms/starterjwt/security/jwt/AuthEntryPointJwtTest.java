@@ -1,6 +1,5 @@
 package com.openclassrooms.starterjwt.security.jwt;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,7 +15,6 @@ import org.springframework.security.core.AuthenticationException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -33,13 +31,11 @@ class AuthEntryPointJwtTest {
 
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
-    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
-        objectMapper = new ObjectMapper(); // For verifying the response body
     }
 
     @Test

@@ -17,7 +17,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import java.io.IOException;
-import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -45,7 +44,6 @@ class AuthTokenFilterTest {
     void setUp() {
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
-        // Clear context before each test
         SecurityContextHolder.clearContext();
     }
 
@@ -92,6 +90,7 @@ class AuthTokenFilterTest {
     @Test
     @DisplayName("Should not set authentication when Authorization header is missing")
     void doFilterInternal_withoutAuthorizationHeader_shouldNotSetAuthentication() throws ServletException, IOException {
+        // Arrange (None)
         // Act
         authTokenFilter.doFilterInternal(request, response, filterChain);
 

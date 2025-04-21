@@ -74,6 +74,7 @@ class UserDetailsServiceImplTest {
             userDetailsService.loadUserByUsername(username);
         });
 
+        // Assert exception message and verify interaction
         assertThat(exception.getMessage()).isEqualTo("User Not Found with email: " + username);
         verify(userRepository).findByEmail(username);
     }

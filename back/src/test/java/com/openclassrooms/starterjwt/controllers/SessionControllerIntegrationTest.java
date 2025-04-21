@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@WithMockUser(username="testuser", roles={"USER"}) // Simulate authenticated user
+@WithMockUser(username="testuser", roles={"USER"})
 public class SessionControllerIntegrationTest {
 
     @Autowired
@@ -55,35 +55,32 @@ public class SessionControllerIntegrationTest {
         teacher1 = new Teacher();
         teacher1.setId(1L);
         teacher1.setFirstName("Test");
-        teacher1.setLastName("Teacher");
+        teacher1.setLastName("Test Teacher");
 
-        // Use builder pattern for Session
         session1 = Session.builder()
                 .id(1L)
                 .name("Integration Test Session")
                 .date(new Date())
                 .description("Session for integration testing")
                 .teacher(teacher1)
-                .users(Collections.emptyList()) // Replace List.of() with Collections.emptyList()
+                .users(Collections.emptyList())
                 .build();
 
-        // Initialize SessionDto matching session1
         sessionDto1 = new SessionDto(
                 1L,
                 "Integration Test Session",
                 session1.getDate(),
                 1L, // teacher_id
                 "Session for integration testing",
-                Collections.emptyList(), // Replace List.of() with Collections.emptyList()
-                null, // createdAt - assuming not set in DTO directly in these tests
-                null  // updatedAt
+                Collections.emptyList(),
+                null,
+                null
         );
     }
 
-    // Integration test methods will be added here
-
     @Test
     void findById_Success() throws Exception {
+        // Arrange
         when(sessionService.getById(1L)).thenReturn(session1);
         when(sessionMapper.toDto(session1)).thenReturn(sessionDto1);
 
@@ -99,6 +96,7 @@ public class SessionControllerIntegrationTest {
 
     @Test
     void findById_NotFound() throws Exception {
+        // Arrange
         when(sessionService.getById(99L)).thenReturn(null);
 
         mockMvc.perform(get("/api/session/{id}", 99L))
@@ -110,6 +108,7 @@ public class SessionControllerIntegrationTest {
 
     @Test
     void findById_BadRequest_InvalidIdFormat() throws Exception {
+        // Act & Assert
         mockMvc.perform(get("/api/session/{id}", "invalid-id"))
                 .andExpect(status().isBadRequest());
 
@@ -118,6 +117,7 @@ public class SessionControllerIntegrationTest {
 
     @Test
     void findAll_Success() throws Exception {
+        // Arrange
         List<Session> sessions = Arrays.asList(session1);
         List<SessionDto> sessionDtos = Arrays.asList(sessionDto1);
         when(sessionService.findAll()).thenReturn(sessions);
@@ -135,18 +135,17 @@ public class SessionControllerIntegrationTest {
 
     @Test
     void create_Success() throws Exception {
+        // Arrange
         SessionDto inputDto = new SessionDto(null, "New Session", new Date(), 1L, "Desc", Collections.emptyList(), null, null);
-        // Mapper converts DTO to entity (without ID)
         Session sessionToCreate = Session.builder().name(inputDto.getName()).date(inputDto.getDate()).description(inputDto.getDescription()).teacher(teacher1).users(Collections.emptyList()).build();
-        // Service saves entity and returns it with an ID
         Session createdSession = Session.builder().id(2L).name(inputDto.getName()).date(inputDto.getDate()).description(inputDto.getDescription()).teacher(teacher1).users(Collections.emptyList()).build();
-        // Mapper converts the created entity back to DTO
         SessionDto createdDto = new SessionDto(2L, "New Session", inputDto.getDate(), 1L, "Desc", Collections.emptyList(), null, null);
 
-        when(sessionMapper.toEntity(any(SessionDto.class))).thenReturn(sessionToCreate); // Mock DTO -> Entity mapping
-        when(sessionService.create(any(Session.class))).thenReturn(createdSession);       // Mock service create call
-        when(sessionMapper.toDto(any(Session.class))).thenReturn(createdDto);         // Mock Entity -> DTO mapping
+        when(sessionMapper.toEntity(any(SessionDto.class))).thenReturn(sessionToCreate);
+        when(sessionService.create(any(Session.class))).thenReturn(createdSession);
+        when(sessionMapper.toDto(any(Session.class))).thenReturn(createdDto);
 
+        // Act & Assert
         mockMvc.perform(post("/api/session")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(inputDto)))
@@ -155,14 +154,14 @@ public class SessionControllerIntegrationTest {
                 .andExpect(jsonPath("$.id", is(2)))
                 .andExpect(jsonPath("$.name", is("New Session")));
 
-        // Verify mocks were called with expected (or any matching) arguments
         verify(sessionMapper).toEntity(any(SessionDto.class));
-        verify(sessionService).create(any(Session.class)); // Can use ArgumentCaptor for more specific checks
+        verify(sessionService).create(any(Session.class));
         verify(sessionMapper).toDto(any(Session.class));
     }
 
     @Test
     void update_Success() throws Exception {
+        // Arrange
         Long sessionId = 1L;
         SessionDto updateDto = new SessionDto(null, "Updated Session", new Date(), 1L, "Updated Desc", Collections.emptyList(), null, null);
         Session sessionUpdates = Session.builder().name(updateDto.getName()).date(updateDto.getDate()).description(updateDto.getDescription()).teacher(teacher1).build();
@@ -174,6 +173,7 @@ public class SessionControllerIntegrationTest {
         when(sessionService.update(eq(sessionId), any(Session.class))).thenReturn(updatedSession);
         when(sessionMapper.toDto(any(Session.class))).thenReturn(updatedDto);
 
+        // Act & Assert
         mockMvc.perform(put("/api/session/{id}", sessionId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateDto)))
@@ -189,7 +189,10 @@ public class SessionControllerIntegrationTest {
 
     @Test
     void update_BadRequest_InvalidIdFormat() throws Exception {
+        // Arrange
         SessionDto updateDto = new SessionDto(null, "Update", new Date(), 1L, "Desc", Collections.emptyList(), null, null);
+
+        // Act & Assert
         mockMvc.perform(put("/api/session/{id}", "invalid-id")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updateDto)))
@@ -200,47 +203,52 @@ public class SessionControllerIntegrationTest {
 
     @Test
     void saveOrDelete_Success() throws Exception {
+        // Arrange
         Long sessionId = 1L;
-        // The controller calls getById before deleting
         when(sessionService.getById(sessionId)).thenReturn(session1);
-        // Mock the void delete method (optional, Mockito does nothing by default)
         doNothing().when(sessionService).delete(sessionId);
 
+        // Act & Assert
         mockMvc.perform(delete("/api/session/{id}", sessionId))
                 .andExpect(status().isOk());
 
-        verify(sessionService).getById(sessionId); // Verify the check happened
-        verify(sessionService).delete(sessionId); // Verify delete was called
+        verify(sessionService).getById(sessionId);
+        verify(sessionService).delete(sessionId);
     }
 
     @Test
     void saveOrDelete_NotFound() throws Exception {
+        // Arrange
         Long sessionId = 99L;
-        when(sessionService.getById(sessionId)).thenReturn(null); // Session not found
+        when(sessionService.getById(sessionId)).thenReturn(null);
 
         mockMvc.perform(delete("/api/session/{id}", sessionId))
                 .andExpect(status().isNotFound());
 
         verify(sessionService).getById(sessionId);
-        verify(sessionService, never()).delete(anyLong()); // Verify delete was not called
+        verify(sessionService, never()).delete(anyLong());
     }
 
-     @Test
+    @Test
     void saveOrDelete_BadRequest_InvalidIdFormat() throws Exception {
+        // Act & Assert
         mockMvc.perform(delete("/api/session/{id}", "invalid-id"))
                 .andExpect(status().isBadRequest());
 
+        // Verify
         verify(sessionService, never()).getById(anyLong());
         verify(sessionService, never()).delete(anyLong());
     }
 
     @Test
     void participate_Success() throws Exception {
+        // Arrange
         Long sessionId = 1L;
         Long userId = 10L;
         // Mock the void participate method
         doNothing().when(sessionService).participate(sessionId, userId);
 
+        // Act & Assert
         mockMvc.perform(post("/api/session/{id}/participate/{userId}", sessionId, userId))
                 .andExpect(status().isOk());
 
@@ -249,23 +257,25 @@ public class SessionControllerIntegrationTest {
 
     @Test
     void participate_BadRequest_InvalidIdFormat() throws Exception {
-        // Test invalid session ID
-        mockMvc.perform(post("/api/session/{id}/participate/{userId}", "invalid-id", 10L))
+        // Act & Assert
+        mockMvc.perform(post("/api/session/{id}/participate/{userId}", "invalid-session-id", 1L))
                 .andExpect(status().isBadRequest());
-        // Test invalid user ID
-        mockMvc.perform(post("/api/session/{id}/participate/{userId}", 1L, "invalid-id"))
+        mockMvc.perform(post("/api/session/{id}/participate/{userId}", 1L, "invalid-user-id"))
                 .andExpect(status().isBadRequest());
 
+        // Verify
         verify(sessionService, never()).participate(anyLong(), anyLong());
     }
 
     @Test
     void noLongerParticipate_Success() throws Exception {
+        // Arrange
         Long sessionId = 1L;
         Long userId = 10L;
         // Mock the void noLongerParticipate method
         doNothing().when(sessionService).noLongerParticipate(sessionId, userId);
 
+        // Act & Assert
         mockMvc.perform(delete("/api/session/{id}/participate/{userId}", sessionId, userId))
                 .andExpect(status().isOk());
 
@@ -274,13 +284,13 @@ public class SessionControllerIntegrationTest {
 
     @Test
     void noLongerParticipate_BadRequest_InvalidIdFormat() throws Exception {
-        // Test invalid session ID
-        mockMvc.perform(delete("/api/session/{id}/participate/{userId}", "invalid-id", 10L))
+        // Act & Assert
+        mockMvc.perform(delete("/api/session/{id}/participate/{userId}", "invalid-session-id", 1L))
                 .andExpect(status().isBadRequest());
-        // Test invalid user ID
-        mockMvc.perform(delete("/api/session/{id}/participate/{userId}", 1L, "invalid-id"))
+        mockMvc.perform(delete("/api/session/{id}/participate/{userId}", 1L, "invalid-user-id"))
                 .andExpect(status().isBadRequest());
 
+        // Verify
         verify(sessionService, never()).noLongerParticipate(anyLong(), anyLong());
     }
 }

@@ -20,8 +20,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -72,8 +70,6 @@ class AuthControllerIntegrationTest {
         testUser.setLastName("User");
         testUser.setPassword("encodedPassword");
         testUser.setAdmin(false);
-        testUser.setCreatedAt(LocalDateTime.now());
-        testUser.setUpdatedAt(LocalDateTime.now());
 
         // Mock Authentication object for login simulation
         authentication = mock(Authentication.class);
@@ -84,12 +80,11 @@ class AuthControllerIntegrationTest {
     @Test
     void authenticateUser_whenValidCredentials_shouldReturnJwtResponse() throws Exception {
         // Arrange
-        // Mock the behavior of dependencies called by the controller's login method
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(authentication);
         when(jwtUtils.generateJwtToken(authentication)).thenReturn("mockJwtToken");
-        // Mock userRepository lookup if controller needs user details beyond UserDetailsImpl
         when(userRepository.findByEmail(loginRequest.getEmail())).thenReturn(java.util.Optional.of(testUser));
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginRequest)))
@@ -100,6 +95,7 @@ class AuthControllerIntegrationTest {
             .andExpect(jsonPath("$.id", is(1)))
             .andExpect(jsonPath("$.admin", is(false)));
 
+        // Verify
         verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(jwtUtils, times(1)).generateJwtToken(authentication);
         verify(userRepository, times(1)).findByEmail(loginRequest.getEmail());
@@ -112,11 +108,13 @@ class AuthControllerIntegrationTest {
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
             .thenThrow(new org.springframework.security.authentication.BadCredentialsException("Bad credentials"));
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginRequest)))
             .andExpect(status().isUnauthorized());
 
+        // Verify
         verify(authenticationManager, times(1)).authenticate(any(UsernamePasswordAuthenticationToken.class));
         verify(jwtUtils, never()).generateJwtToken(any(Authentication.class));
         verify(userRepository, never()).findByEmail(anyString());
@@ -129,13 +127,15 @@ class AuthControllerIntegrationTest {
         when(userRepository.existsByEmail(signupRequest.getEmail())).thenReturn(false);
         when(passwordEncoder.encode(signupRequest.getPassword())).thenReturn("encodedPasswordForNewUser");
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signupRequest)))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message", is("User registered successfully!"))); // Assuming success message
+            .andExpect(jsonPath("$.message", is("User registered successfully!")));
 
+        // Verify
         verify(userRepository, times(1)).existsByEmail(signupRequest.getEmail());
         verify(passwordEncoder, times(1)).encode(signupRequest.getPassword());
         verify(userRepository, times(1)).save(any(User.class));
@@ -146,13 +146,15 @@ class AuthControllerIntegrationTest {
         // Arrange
         when(userRepository.existsByEmail(signupRequest.getEmail())).thenReturn(true);
 
+        // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signupRequest)))
-            .andExpect(status().isBadRequest()) // Expect 400 Bad Request
+            .andExpect(status().isBadRequest())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message", is("Error: Email is already taken!"))); // Check error message
+            .andExpect(jsonPath("$.message", is("Error: Email is already taken!")));
 
+        // Verify
         verify(userRepository, times(1)).existsByEmail(signupRequest.getEmail());
         verify(passwordEncoder, never()).encode(anyString());
         verify(userRepository, never()).save(any(User.class));

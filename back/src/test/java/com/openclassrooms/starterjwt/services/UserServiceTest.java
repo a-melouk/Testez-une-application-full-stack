@@ -82,8 +82,7 @@ class UserServiceTest {
         @Test
         @DisplayName("Should call repository deleteById")
         void testDelete() {
-            // Arrange
-            // No specific arrangement needed, just verifying the call
+            // Arrange (None)
 
             // Act
             userService.delete(userId);

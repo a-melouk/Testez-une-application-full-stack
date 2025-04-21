@@ -30,7 +30,7 @@ class JwtUtilsTest {
     private Authentication authentication;
 
     private final String jwtSecret = "testSecretKeyForJwtUtilsTest1234567890Test"; // Must be long enough for HS512
-    private final int jwtExpirationMs = 3600000; // 1 hour
+    private final int jwtExpirationMs = 3600000;
 
     @BeforeEach
     void setUp() {
@@ -124,13 +124,11 @@ class JwtUtilsTest {
             // Arrange
             String token = generateTestToken("user", new Date(System.currentTimeMillis() + jwtExpirationMs), "wrongSecret");
 
-
             // Act
             boolean isValid = jwtUtils.validateJwtToken(token);
 
             // Assert
             assertFalse(isValid);
-            // Consider adding log verification if needed
         }
 
         @Test
@@ -163,7 +161,7 @@ class JwtUtilsTest {
         @DisplayName("Should return false for an unsupported token")
         void testValidateJwtToken_Unsupported() {
             // Arrange
-             String unsupportedToken = Jwts.builder().setSubject("user").compact(); // Missing signature and potentially other parts
+             String unsupportedToken = Jwts.builder().setSubject("user").compact(); // Missing signature
 
             // Act
             boolean isValid = jwtUtils.validateJwtToken(unsupportedToken);
@@ -178,13 +176,12 @@ class JwtUtilsTest {
              // Arrange
              String token = "";
 
-             // Act & Assert
+             // Assert preliminary check (Jwts parser)
              assertThrows(IllegalArgumentException.class, () -> {
-                 // Jwts.parser() throws IllegalArgumentException for empty or whitespace-only strings before specific JWT exceptions
                  Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token);
              });
 
-             // Verify our method catches it (although the parser throws it first)
+             // Act & Assert (JwtUtils method)
              boolean isValid = jwtUtils.validateJwtToken(token);
              assertFalse(isValid);
         }
@@ -192,14 +189,14 @@ class JwtUtilsTest {
         @Test
         @DisplayName("Should return false for a null token")
         void testValidateJwtToken_NullToken() {
-            // Act & Assert
+            // Assert preliminary check (Jwts parser)
             assertThrows(IllegalArgumentException.class, () -> {
-                 // Jwts.parser() throws IllegalArgumentException for null input
-                 Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(null);
-             });
-             // Verify our method handles it
-             boolean isValid = jwtUtils.validateJwtToken(null);
-             assertFalse(isValid); // Should trigger IllegalArgumentException inside validateJwtToken
+                Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(null);
+            });
+
+            // Act & Assert (JwtUtils method)
+            boolean isValid = jwtUtils.validateJwtToken(null);
+            assertFalse(isValid);
         }
     }
 }
