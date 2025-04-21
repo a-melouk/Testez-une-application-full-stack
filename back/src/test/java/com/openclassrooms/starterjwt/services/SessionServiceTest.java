@@ -1,25 +1,32 @@
 package com.openclassrooms.starterjwt.services;
 
+import com.openclassrooms.starterjwt.exception.BadRequestException;
+import com.openclassrooms.starterjwt.exception.NotFoundException;
 import com.openclassrooms.starterjwt.models.Session;
+import com.openclassrooms.starterjwt.models.User;
 import com.openclassrooms.starterjwt.repository.SessionRepository;
 import com.openclassrooms.starterjwt.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-import java.util.Date;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.times;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 // Use MockitoExtension to enable Mockito annotations like @Mock and @InjectMocks
 @ExtendWith(MockitoExtension.class)
@@ -41,6 +48,7 @@ class SessionServiceTest {
     private SessionService sessionService;
 
     private Session mockSession;
+    private User mockUser;
 
     // Setup method to initialize common test data before each test method
     @BeforeEach
@@ -50,6 +58,13 @@ class SessionServiceTest {
         mockSession.setName("Yoga Basics");
         mockSession.setDate(new Date());
         mockSession.setDescription("Introduction to Yoga");
+        mockSession.setUsers(new ArrayList<>());
+
+        mockUser = new User();
+        mockUser.setId(10L);
+        mockUser.setFirstName("John");
+        mockUser.setLastName("Doe");
+        mockUser.setEmail("john.doe@test.com");
     }
 
     // Test case for the getById method when a session is found
@@ -89,7 +104,7 @@ class SessionServiceTest {
         // Verify that the result is null, as expected when the session is not found.
         assertThat(result).isNull();
         // Verify that the findById method on the mock repository was called exactly once with the argument 2L.
-        verify(sessionRepository).findById(2L);
+        verify(sessionRepository, times(1)).findById(2L);
     }
 
     // Test case for the create method
@@ -203,5 +218,112 @@ class SessionServiceTest {
         // We can capture the argument or rely on the `when` matching `any(Session.class)`
         // combined with asserting the result which comes from the mocked return.
         verify(sessionRepository, times(1)).save(any(Session.class)); // Verifies save was called
+    }
+
+    // Test case for the participate method - Success scenario
+    @Test
+    void testParticipate_Success() {
+        // --- Arrange ---
+        Long sessionId = 1L;
+        Long userId = 10L;
+
+        // Ensure the mock session initially has an empty user list for this test
+        mockSession.setUsers(new ArrayList<>());
+
+        // Mock repository calls
+        // cReate a session instance and then manipulate
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(mockSession));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+        // Mock the save operation
+        when(sessionRepository.save(any(Session.class))).thenReturn(mockSession);
+
+        // --- Act ---
+        sessionService.participate(sessionId, userId);
+
+        // --- Assert ---
+        // Verify repository methods were called
+
+        // Can use any instead of sessionId
+        verify(sessionRepository, times(1)).findById(sessionId);
+        verify(userRepository, times(1)).findById(userId);
+        // Capture the argument passed to save
+        ArgumentCaptor<Session> sessionCaptor = ArgumentCaptor.forClass(Session.class);
+        verify(sessionRepository,times(1)).save(sessionCaptor.capture());
+        // Check that the saved session now contains the user
+        Session savedSession = sessionCaptor.getValue();
+        assertThat(savedSession.getUsers()).isNotNull();
+        assertThat(savedSession.getUsers()).contains(mockUser);
+        assertThat(savedSession.getUsers().size()).isEqualTo(1);
+    }
+
+    // Test case for the participate method - Session Not Found
+    @Test
+    void testParticipate_SessionNotFound() {
+        // --- Arrange ---
+        Long sessionId = 99L; // Non-existent session ID
+        Long userId = 10L;
+
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.empty());
+        // We still need to mock the user repository call, even though we expect
+        // the session check to fail first, because the code executes both finds
+        // before checking for null.
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser)); // Or Optional.empty(), result doesn't matter here
+
+        // --- Act & Assert ---
+        // Verify that calling participate throws NotFoundException
+        assertThatThrownBy(() -> sessionService.participate(sessionId, userId))
+                .isInstanceOf(NotFoundException.class);
+
+        // Verify findById was called for session
+        verify(sessionRepository).findById(sessionId);
+        // Verify findById was ALSO called for user, as per the code logic
+        verify(userRepository).findById(userId);
+        // Verify save was not called
+        verify(sessionRepository, never()).save(any(Session.class));
+    }
+
+    // Test case for the participate method - User Not Found
+    @Test
+    void testParticipate_UserNotFound() {
+        // --- Arrange ---
+        Long sessionId = 1L;
+        Long userId = 99L; // Non-existent user ID
+
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(mockSession));
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        // --- Act & Assert ---
+        // Verify that calling participate throws NotFoundException
+        assertThatThrownBy(() -> sessionService.participate(sessionId, userId))
+                .isInstanceOf(NotFoundException.class);
+
+        // Verify findById methods were called but save was not
+        verify(sessionRepository).findById(sessionId);
+        verify(userRepository).findById(userId);
+        verify(sessionRepository, never()).save(any(Session.class));
+    }
+
+    // Test case for the participate method - Already Participating
+    @Test
+    void testParticipate_AlreadyParticipating() {
+        // --- Arrange ---
+        Long sessionId = 1L;
+        Long userId = 10L;
+
+        // Add the user to the mock session's list beforehand
+        mockSession.getUsers().add(mockUser);
+
+        when(sessionRepository.findById(sessionId)).thenReturn(Optional.of(mockSession));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(mockUser));
+
+        // --- Act & Assert ---
+        // Verify that calling participate throws BadRequestException
+        assertThatThrownBy(() -> sessionService.participate(sessionId, userId))
+                .isInstanceOf(BadRequestException.class);
+
+        // Verify findById methods were called but save was not
+        verify(sessionRepository).findById(sessionId);
+        verify(userRepository).findById(userId);
+        verify(sessionRepository, never()).save(any(Session.class));
     }
 }
